@@ -23,7 +23,7 @@ flight failist Loeme andmeid R-i failist *flights.csv*, andmestik *flights.csv* 
 
 ```{r}
 flight <- read.csv("flights.csv", header=TRUE, stringsAsFactors = FALSE)
-flight <- flight[seq(1, nrow(flight), by = 60), ]
+flight <- flight[seq(1, nrow(flight), by = 50), ]
 ```
 
 Et saada andmestikust ülevaadet väljastame andmestiku tabelina. Selleks kasutame funktsiooni *datatable()* paketist “DT” ja *library(“DT”)*.
@@ -107,20 +107,39 @@ Enne uurimishüpoteeside sõnastamist peab läbi viima seoste eelanalüüsi, et 
 Uurimiseks eraldatakse andmetest üks peamine analüüsitav tunnus ehk sihttunnus, mis vastab analüüsi eesmärgile.
 
 #### Seoste analüüs
-Visualiseerime seoseid andmestiku arvuliste tunnuste vahel funktsiooni plot() abil.
+Visualiseerime seoseid andmestiku arvuliste tunnuste vahel funktsiooni plot() abil. Kuna 31 objekti on liiga palju, et kõiki ühel ekraanil kuvada, siis arvasime mõned väärtused välja.
 ```{r}
 graphics.off()
-par("mar")
-par(mar=c(1,1,1,1))
+par(mar = c(2, 2, 1, 1))
+numeric_data <- Filter(is.numeric, flight)
+exclude_columns <- c(
+  "YEAR", #1
+  "MONTH", #2
+  "DAY", #3
+  "DAY_OF_WEEK", #4
+  "FLIGHT_NUMBER", #5
+  "AIR_TIME", #13
+  "DISTANCE", #14
+  "DIVERTED", #20  
+  "CANCELLED", #21
+  "AIR_SYSTEM_DELAY", #22
+  "SECURITY_DELAY", #23
+  "AIRLINE_DELAY", #24
+  "LATE_AIRCRAFT_DELAY", #25
+  "WEATHER_DELAY", #26
 
-plot(Filter(is.numeric,flight)[ ,-1], pch=150,col="blue",cex=25)
+)
+plot_data <- numeric_data[, !(names(numeric_data) %in% exclude_columns)]
+plot(plot_data, 
+     pch = 19,       # Solid circle points
+     col = "skyblue", 
+     cex = 0.5,      # Smaller points to avoid overplotting
+     main = "Flight Data (Excluding Specified Columns)")
 ```
 Selleks, et vaadata sihttunuse “TotChol” sõltuvust mittervulistest tunnustest, esitame sihttunnuse karpdiagrammid kategoriaalsete tunnuste rühmades. Kasutame selleks funktsiooni ggpairs() paketist GGally, mis loob tunnuste paaride diagrammide maatriksi.
 Salvestame graafiku muutujasse plot:
 ```{r}
-library(GGally)
 
-plot <- ggpairs(flight[ ,c("TotChol",CharVar)], lower='blank',upper=list(continuous = wrap('points', color = 'blue'),combo = wrap('box', fill = 'blue', outlier.color = 'blue')), diag=list(continuous=wrap('barDiag',fill = 'blue')), progress = FALSE,axisLabels="none")
 ```
 
 
