@@ -23,10 +23,9 @@ flight failist Loeme andmeid R-i failist *flights.csv*, andmestik *flights.csv* 
 
 ```{r}
 flight <- read.csv("flights.csv", header=TRUE, stringsAsFactors = FALSE)
-flight <- flight[seq(1, nrow(flight), by = 40), ]
+flight <- flight[seq(1, nrow(flight), by = 60), ]
 ```
 
-## Ülevaade andmestikust
 Et saada andmestikust ülevaadet väljastame andmestiku tabelina. Selleks kasutame funktsiooni *datatable()* paketist “DT” ja *library(“DT”)*.
 
 ```{r, warning=FALSE, message=FALSE}
@@ -41,7 +40,7 @@ str(flight)
 ```
 Funktsiooni *str()* rakendamise tulemusel saime teada, et andmestikus on 145477 objekti ja 31 muutuja.
 
-## Ülevaade funktsiooni *skim()* abil
+### Ülevaade funktsiooni *skim()* abil
 Teeme andmestiust detailsema ülevaate paketi skimr funktsiooni selle abil:
 ```{r}
 library(skimr)
@@ -88,30 +87,40 @@ sum(complete.cases(flight))
 ```
 Andmestikus on nüüd alles 26474 objekti.
 
-### Kontrollime, et andmetüübid on R-i poolt õigesti loetud ja mittearvuliste tunnuste tüübiks on factor
-Faktor tunnuste moodustamine
+## Faltortunnuste moodustamine
+Asendame edasiseks analüüsiks sümboltüüpi tunnused faktoriteks:
 ```{r}
 flight <- as.data.frame(unclass(flight), stringAsFactors = TRUE)
 ```
-Ülevaate loomine
+Ettevalmistatud andmestiku struktuur:
 ```{r}
 skim(flight)
 ```
 Andmestikus on 5 faktor tunnust ja 26 arvulist tunnust
 
-### Arvulise tunnuste konstrueerimine ja korrektselt vormistamine suhteliste sageduste histogramm ja karpdiagramm
-Sageduste diagramm
+## Andmete kirjeldav analüüs
+Kirjeldava andmeanalüüsi etapil esitatakse tunnuste väärtuste jaotuste diagrammid, sagedustabelid, аrvulised karakteristikud ning tehakse ka erindite ehk anomaalväärtuste analüüs.
+
+### Seoste analüüs
+Enne uurimishüpoteeside sõnastamist peab läbi viima seoste eelanalüüsi, et mõista uurimuse edukuse potentsiaali.
+
+Uurimiseks eraldatakse andmetest üks peamine analüüsitav tunnus ehk sihttunnus, mis vastab analüüsi eesmärgile.
+
+#### Seoste analüüs
+Visualiseerime seoseid andmestiku arvuliste tunnuste vahel funktsiooni plot() abil.
 ```{r}
-h <- hist(flight$DEPARTURE_DELAY, col = "skyblue", main="Tunnuste DEPARTURE_DELAY sageduste histogramm", xlab="DEPARTURE_DELAY", ylab="sageduse arv",cex.main=0.8, cex.lab=0.8)
+graphics.off()
+par("mar")
+par(mar=c(1,1,1,1))
+
+plot(Filter(is.numeric,flight)[ ,-1], pch=150,col="blue",cex=25)
 ```
-Suhteliste sageduste histogramm ja kardiagramm
+Selleks, et vaadata sihttunuse “TotChol” sõltuvust mittervulistest tunnustest, esitame sihttunnuse karpdiagrammid kategoriaalsete tunnuste rühmades. Kasutame selleks funktsiooni ggpairs() paketist GGally, mis loob tunnuste paaride diagrammide maatriksi.
+Salvestame graafiku muutujasse plot:
 ```{r}
-par(mfrow=c(1,2))
-h$counts<-h$counts/sum(h$counts)*100
+library(GGally)
 
-plot(h,col = "skyblue",main = "Tunnuse DEPARTURE_DELAY \n suhteliste sageduste histogramm", xlab="DEPARTURE_DELAY", ylab = "suht.sagedus,%",cex.main=0.8, las=2, cex.lab=0.8)
-
-b <- boxplot(flight$DEPARTURE_DELAY, col = "skyblue", horizontal = 1, main="Tunnuse DEPARTURE_DELAY karpdiagramm", xlab="tubade arv", cex.main=1, range = 15, cex.lab=1 )
+plot <- ggpairs(flight[ ,c("TotChol",CharVar)], lower='blank',upper=list(continuous = wrap('points', color = 'blue'),combo = wrap('box', fill = 'blue', outlier.color = 'blue')), diag=list(continuous=wrap('barDiag',fill = 'blue')), progress = FALSE,axisLabels="none")
 ```
 
 
