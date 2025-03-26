@@ -1,0 +1,117 @@
+---
+title: "Seminaritöö 1 ports"
+author: ""
+date: "2025-02-25"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: false
+    number_sections: false
+    theme: default
+    code_folding: show
+---
+
+Käesolevas õppematerjalis on esitatud andmestiku puhastamise, ettevalmistamise ja kirjeldava analüüsu läbiviimise skeem andmestiku flights.csv näitel. Antud materjalis lahendatud ülesanded vastavad Seminaritöö 1 ülesannetele.
+
+# Andmete eeltöötlus
+Andmete eeltöötluse etapil toimub andmete edasiseks analüüsiks ettevalmistamine: andmete lugemine, tunnuste tüüpide kontrollimine, puhastamine (vigaste väärtuste kontroll ja eemaldamine, duplikaatide eemaldamine, puuduvate väärtuste kontroll ja asendamine või eemaldamine, mittesobivate tunnuste kustutamine) ja ka tunnuste teisendamine ning uute tunnuste moodustamine.
+
+## Andmete lugemine
+flight failist Loeme andmeid R-i failist *flights.csv*, andmestik *flights.csv* üle 40nda rea. Üle rea lugemiseks kasutame seq() funktsiooni.
+
+```{r}
+flight <- read.csv("flights.csv", header=TRUE, stringsAsFactors = FALSE)
+flight <- flight[seq(1, nrow(flight), by = 40), ]
+```
+
+## Ülevaade andmestikust
+Et saada andmestikust ülevaadet väljastame andmestiku tabelina. Selleks kasutame funktsiooni *datatable()* paketist “DT” ja *library(“DT”)*.
+
+```{r, warning=FALSE, message=FALSE}
+library(DT)
+datatable(flight, options=list(scrollx=1, pageLenght=10, searching=FALSE, scroller=TRUE, scrolly=200))
+```
+## Ülevaade andmestiku struktuurist
+### Ülevaade funktsiooni *str()* abil
+Kasutame funktsiooni str() andmestiku struktuuri ülevaatamiseks
+```{r}
+str(flight)
+```
+Funktsiooni *str()* rakendamise tulemusel saime teada, et andmestikus on 145477 objekti ja 31 muutuja.
+
+## Ülevaade funktsiooni *skim()* abil
+Teeme andmestiust detailsema ülevaate paketi skimr funktsiooni selle abil:
+```{r}
+library(skimr)
+skim(flight)
+```
+Peale andmestiku objektide ja tunnuste arvust funktsioon skim() annab teada, ett andmestikus on 5 sümbolitüüpi ja 26 arvulist tunnust. Näeme teise tabeli põhjal, et andmestikus on puuduvate väärtustega 0 väärtusi ning tühjasi lahtreid on 370 TAIL_NUMBER ja 143226 CANCELLATION_REASON.
+Kolmandas tabelis näeme, et tunnustes DEPARTURE_TIME, DEPARTURE_DELAY, TAXI_OUT ja WHEELS_OFF on 2151-2226 puuduvaid väärtusi.
+
+## Andmestiku puhastamine
+### Duplikaatide kontroll
+kontrollime duplikaatide olemasolu duplicated() abil.
+```{r}
+sum(duplicated(flight))
+```
+Näeme, et selles andmestikkus duplikaadid puuduvad.
+
+### Puuduvate väärtuste kontroll
+Puuduvate väärtuste olemsolu kontrollimiseks kasutatakse funktsiooni is.na(). Leiame puuduvate väärtuste koguarvu andmestikus. Puuduvate väärtuste koguarv on r sum(is.na(air))
+```{r}
+sum(!complete.cases(flight))
+```
+Puuduvate väärtuste koguarv on 618608.
+Puuduvate väärtustega objektide arvu leidmiseks kasutatakse funktsiooni complete.cases(). Leiame puuduvate väärtustega objektide arvu andmestikus.
+```{r}
+sum(!complete.cases(flight))
+```
+Antud andmestikus on puuduvate väärtustega ehk NA väärtustega objekte ja neid on 119003.
+
+Leiame mitu puuduvat väärtust igal tunnusel on funktsiooni apply() abil.
+```{r}
+apply(is.na(flight), 2, sum)
+```
+Puuduvad väärtused on seotud tunnustega:
+DEPARTURE_TIME ja DEPARTURE_DELAY: 2151,  TAXI_OUT ja WHEELS_OFF: 2226,  SCHEDULED_TIME: 1,  ELAPSED_TIME ja AIR_TIME: 2621,  WHEELS_ON ja TAXI_IN: 2325,  AIR_SYSTEM_DELAY, SECURITY_DELAY, AIRLINE_DELAY,  LATE_AIRCRAFT_DELAY ja WEATHER_DELAY: 119003
+
+### Eemaldame puuduvate väärtustega objekte
+Puuduvate väärtustega objektide eemaldamine: Eemaldamiseks kasutame ‘na.omit()’ funktsiooni.
+```{r}
+flight <- na.omit(flight)
+```
+Pärast puuduvate väärtustega objektide eemaldamist kontrollime objektide arvu uuesti.
+```{r}
+sum(complete.cases(flight))
+```
+Andmestikus on nüüd alles 26474 objekti.
+
+### Kontrollime, et andmetüübid on R-i poolt õigesti loetud ja mittearvuliste tunnuste tüübiks on factor
+Faktor tunnuste moodustamine
+```{r}
+flight <- as.data.frame(unclass(flight), stringAsFactors = TRUE)
+```
+Ülevaate loomine
+```{r}
+skim(flight)
+```
+Andmestikus on 5 faktor tunnust ja 26 arvulist tunnust
+
+### Arvulise tunnuste konstrueerimine ja korrektselt vormistamine suhteliste sageduste histogramm ja karpdiagramm
+Sageduste diagramm
+```{r}
+h <- hist(flight$DEPARTURE_DELAY, col = "skyblue", main="Tunnuste DEPARTURE_DELAY sageduste histogramm", xlab="DEPARTURE_DELAY", ylab="sageduse arv",cex.main=0.8, cex.lab=0.8)
+```
+Suhteliste sageduste histogramm ja kardiagramm
+```{r}
+par(mfrow=c(1,2))
+h$counts<-h$counts/sum(h$counts)*100
+
+plot(h,col = "skyblue",main = "Tunnuse DEPARTURE_DELAY \n suhteliste sageduste histogramm", xlab="DEPARTURE_DELAY", ylab = "suht.sagedus,%",cex.main=0.8, las=2, cex.lab=0.8)
+
+b <- boxplot(flight$DEPARTURE_DELAY, col = "skyblue", horizontal = 1, main="Tunnuse DEPARTURE_DELAY karpdiagramm", xlab="tubade arv", cex.main=1, range = 15, cex.lab=1 )
+```
+
+
