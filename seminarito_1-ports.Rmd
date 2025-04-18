@@ -23,7 +23,7 @@ flight failist Loeme andmeid R-i failist *flights.csv*, andmestik *flights.csv* 
 
 ```{r}
 flight <- read.csv("flights.csv", header=TRUE, stringsAsFactors = FALSE)
-flight <- flight[seq(1, nrow(flight), by = 50), ]
+flight <- flight[seq(1, nrow(flight), by = 1500), ]
 ```
 
 Et saada andmestikust ülevaadet väljastame andmestiku tabelina. Selleks kasutame funktsiooni *datatable()* paketist “DT” ja *library(“DT”)*.
@@ -76,14 +76,20 @@ apply(is.na(flight), 2, sum)
 Puuduvad väärtused on seotud tunnustega:
 DEPARTURE_TIME ja DEPARTURE_DELAY: 2151,  TAXI_OUT ja WHEELS_OFF: 2226,  SCHEDULED_TIME: 1,  ELAPSED_TIME ja AIR_TIME: 2621,  WHEELS_ON ja TAXI_IN: 2325,  AIR_SYSTEM_DELAY, SECURITY_DELAY, AIRLINE_DELAY,  LATE_AIRCRAFT_DELAY ja WEATHER_DELAY: 119003
 
+Kuna väärtustel: 
+
 ### Eemaldame puuduvate väärtustega objekte
 Puuduvate väärtustega objektide eemaldamine: Eemaldamiseks kasutame ‘na.omit()’ funktsiooni.
+
+Siin veeru nimi vahetada!
+Teine varjand: flights <- subset(flights, select = -c(AIR_SYSTEM_DELAY, SECURITY_DELAY, LATE_AIRCRAFT_DELAY, WEATHER_DELAY))
+
 ```{r}
-flight <- na.omit(flight)
+flight <- na.omit(flight[, -which(flight)=="veeru nimi"])
 ```
-Pärast puuduvate väärtustega objektide eemaldamist kontrollime objektide arvu uuesti.
+Pärast puuduvate väärtustega objektide eemaldamist kontrollime, et andmestikus poleks rohkem puuduvaid väärtusi:
 ```{r}
-sum(complete.cases(flight))
+sum(!complete.cases(flight))
 ```
 Andmestikus on nüüd alles 26474 objekti.
 
