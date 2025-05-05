@@ -17,6 +17,7 @@ Käesolevas õppematerjalis on esitatud andmestiku puhastamise, ettevalmistamise
 
 The U.S. Department of Transportation's (DOT) Bureau of Transportation Statistics tracks the on-time performance of domestic flights operated by large air carriers. Summary information on the number of on-time, delayed, canceled, and diverted flights is published in DOT's monthly Air Travel Consumer Report and in this dataset of 2015 flight delays and cancellations.
 
+Flights.csv andmestik on kättesaadav lehelt: https://www.kaggle.com/datasets/usdot/flight-delays?resource=download 
 
 # Andmete eeltöötlus
 Andmete eeltöötluse etapil toimub andmete edasiseks analüüsiks ettevalmistamine: andmete lugemine, tunnuste tüüpide kontrollimine, puhastamine (vigaste väärtuste kontroll ja eemaldamine, duplikaatide eemaldamine, puuduvate väärtuste kontroll ja asendamine või eemaldamine, mittesobivate tunnuste kustutamine) ja ka tunnuste teisendamine ning uute tunnuste moodustamine.
@@ -62,7 +63,7 @@ AIR_SYSTEM_DELAY, SECURITY_DELAY, AIRLINE_DELAY, LATE_AIRCRAFT_DELAY, WEATHER_DE
 Duplikaatide ülevaateks kasutame *dfSummary()* paketti.
 ```{r}
 library(summarytools)
-dfSummary(flight, plain.ascii = FALSE, style = "grid",tmp.img.dir  = "/tmp",graph.magnif = 0.85)
+dfSummary(flight, plain.ascii = FALSE, style = "grid", tmp.img.dir = tempdir(), graph.magnif = 0.9)
 ```
 
 
@@ -121,7 +122,7 @@ Andmestikus nüüd puuduvad väärtused puuduvad.
 ## Faltortunnuste moodustamine
 Asendame edasiseks analüüsiks sümboltüüpi tunnused faktoritega:
 ```{r}
-flight <- as.data.frame(unclass(flight), stringAsFactors = TRUE)
+flight <- as.data.frame(lapply(flight, function(x) if(is.character(x)) as.factor(x) else x))
 ```
 
 Teeme uuendatud andmestiku ülevaade
@@ -143,7 +144,7 @@ flight<- subset(flight, select = -c(TAIL_NUMBER, ORIGIN_AIRPORT, DESTINATION_AIR
 
 Ülejäänud faktor-tunnuste puhul vaatame erinevate kategooriate arvu esenemist
 ```{r}
-sapply(flight[,sapply(flight, is.factor)],table)
+as.data.frame(sapply(flight[, sapply(flight, is.factor)], table))
 ```
 
 
