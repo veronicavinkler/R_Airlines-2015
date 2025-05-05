@@ -60,12 +60,7 @@ WHEELS_ON, TAXI_IN, ARRIVAL_TIME- 80,
 ARRIVAL_DELAY- 92,
 AIR_SYSTEM_DELAY, SECURITY_DELAY, AIRLINE_DELAY, LATE_AIRCRAFT_DELAY, WEATHER_DELAY- 3165.
 
-Duplikaatide ülevaateks kasutame *dfSummary()* paketti.
-```{r}
-library(summarytools)
-dfSummary(flight, plain.ascii = FALSE, style = "grid", tmp.img.dir = tempdir(), graph.magnif = 0.9)
-```
-
+Duplikaatides me ülevaadet ei teinud kuna neid ei olnud.
 
 
 ## Andmestiku puhastamine
@@ -148,10 +143,11 @@ as.data.frame(sapply(flight[, sapply(flight, is.factor)], table))
 ```
 
 
+
 # Andmete kirjeldav analüüs
 Kirjeldava andmeanalüüsi etapil esitatakse tunnuste väärtuste jaotuste diagrammid, sagedustabelid, аrvulised karakteristikud ning tehakse ka erindite ehk anomaalväärtuste analüüs.
 
-## Tunnuste arvkarateristikud
+## Tunnuste arvkarakteristikud
 Andmestiku arvuliste tunnuste kõik valjalikud arvkarakteristikud on võimalik saada paketi FSA (install.packages(“FSA”)) funktsiooni Summarize() abil.
 
 ```{r}
@@ -159,18 +155,26 @@ library(FSA)
 sapply(Filter(is.numeric, flight[,-1]),Summarize)
 ```
 
-Andmestiku mittearvuliste tunnuste arvkarakteristikute asemel esitame nende väärtuste sagedustabelid
+Andmestiku mittearvuliste tunnuste arvkarakteristikute asemel esitame nende väärtuste sagedustabelid.
 
+Kuna meil on üks faktor tunnus kontrollime kas see oletakse vigadeta faktoriks.
 ```{r}
-sapply(flight[,sapply(flight, is.factor)],table)
+is.factor(flight$AIRLINE)
 ```
+
+kuna tunnust ei loetud õigesti teisaldame selle faktoriks.ning moodustame sagedustabeli.
+```{r}
+flight$AIRLINE <- as.factor(flight$AIRLINE)
+table(flight$AIRLINE)
+```
+Tulemusena saime teada mitu korda iga kategooria esineb.
 
 
 ## Tunnuste jaotused
 ### Arvuliste tunnuste jaotused
 Esitame arvuliste tunnuste jaotuste histogrammid ja karpdiagrammid. Uurime erindite olemsolu.
 
-```{r}
+```{r, fig.width=10, fig.height=6}
 par(mfrow = c(2, 2))
 tunnused <- Filter(is.numeric, flight[,-1])
 for (i in 1:5)
@@ -184,24 +188,31 @@ points(mean(tunnused[,i]), 1, col = "red", pch = 18)
 text(mean(tunnused[,i]), 0.95, "mean", col="red", cex=0.5)    }
 ```
 
+MONTH karpdiagramm on normaalselt jaotunud kuid kerge asümmeetriaga.
+Sageduse histogramm on asümeetriline, kuna 30 ümbruses on sagedused madalamad ning kõrgemad väärtused 800 ümber on rohkem paremal.
+DAY_OF_WEEK histogramm on natukene asümmeetriline paremale kuna osa vastustest on madalad.
+Sageduse histogramm FLIGHT_NUMBER on asümmeetriaga. Madalad sagedused domineerivad, kuid mõned lennud on väga kõrge sagedusega (6000).
+SCHEDULED_DEPARTURE on peagu sümmeetriline, SCHEDULED_DEPARTURE karpdiagrammon samuti peagu sümmeetriline.
 
-### Seoste analüüs
-Enne uurimishüpoteeside sõnastamist peab läbi viima seoste eelanalüüsi, et mõista uurimuse edukuse potentsiaali.
+### Kategoriaalsete tunnuste jaotused
+Esitame kategoriaalsete tunnuste väärtuste sageduste histogrammid jättes suure erinevate kategooriate arvuga tunnuseid välja.
 
-Uurimiseks eraldatakse andmetest üks peamine analüüsitav tunnus ehk sihttunnus, mis vastab analüüsi eesmärgile.
-
-#### Seoste analüüs
-Visualiseerime seoseid andmestiku arvuliste tunnuste vahel funktsiooni plot() abil. Kuna 31 objekti on liiga palju, et kõiki ühel ekraanil kuvada, siis arvasime mõned väärtused välja.
 ```{r}
-graphics.off()
-par(mar = c(2, 2, 1, 1))
-numeric_data <- Filter(is.numeric, flight)
+Ktunnused <- flight[, sapply(flight, is.factor)]
 
+# Kui Ktunnused on vektor, teisenda see andmetabeliks
+if (is.vector(Ktunnused)) {
+  Ktunnused <- as.data.frame(Ktunnused)
+  colnames(Ktunnused) <- names(flight)[sapply(flight, is.factor)]
+}
+
+# Joonista histogrammid
+par(mfrow = c(1, 2))
+par(mar = c(10, 4, 4, 2))
+for (i in 1:ncol(Ktunnused)) {
+  barplot(table(Ktunnused[, i]), col = "skyblue", ylab = "Sagedus",
+          main = paste("Tunnuse", names(Ktunnused)[i], "\n sageduste histogramm"),
+          cex.main = 0.9, cex.axis = 0.7, cex.lab = 0.8, las = 2, cex.names = 0.5)
+}
 ```
-Selleks, et vaadata sihttunuse “TotChol” sõltuvust mittervulistest tunnustest, esitame sihttunnuse karpdiagrammid kategoriaalsete tunnuste rühmades. Kasutame selleks funktsiooni ggpairs() paketist GGally, mis loob tunnuste paaride diagrammide maatriksi.
-Salvestame graafiku muutujasse plot:
-```{r}
-
-```
-
 
