@@ -19,6 +19,7 @@ The U.S. Department of Transportation's (DOT) Bureau of Transportation Statistic
 
 Flights.csv andmestik on kättesaadav lehelt: https://www.kaggle.com/datasets/usdot/flight-delays?resource=download 
 
+
 # Andmete eeltöötlus
 Andmete eeltöötluse etapil toimub andmete edasiseks analüüsiks ettevalmistamine: andmete lugemine, tunnuste tüüpide kontrollimine, puhastamine (vigaste väärtuste kontroll ja eemaldamine, duplikaatide eemaldamine, puuduvate väärtuste kontroll ja asendamine või eemaldamine, mittesobivate tunnuste kustutamine) ja ka tunnuste teisendamine ning uute tunnuste moodustamine.
 
@@ -49,7 +50,7 @@ Teeme andmestiust parema ja detailsema ülevaate paketi skimr funktsiooni abil.
 library(skimr)
 skim(flight)
 ```
-Funktsioon skim() annab teada, ett andmestikus on 5 sümbolitüüpi ja 26 arvulist tunnust.
+Funktsioon skim() annab teada, et andmestikus on 5 sümbolitüüpi ja 26 arvulist tunnust.
 Faktortunnuse tabeli põhjal näeme, et andmestikus on puuduvate väärtustega väärtusi 0, tühjasi lahtreid on 16 ORIGIN_AIRPORT muutujal ja 3801 CANCELLATION_REASON muutujal.
 
 Numbriliste väärtuste tabelis näeme, et puuduvaid väärtusi on muutujatel
@@ -114,6 +115,37 @@ sum(!complete.cases(flight))
 ```
 Andmestikus nüüd puuduvad väärtused puuduvad.
 
+### Eemaldame tunnused madalate varieeruvustega
+Tunnused, mille väärtused on peaaegu konstantsed, ei anna meile analüüsimisel palju lisainfot ning nende eemaldamiseks kasutame nearZeroVar() funktsiooni paketist caret:
+```{r}
+library(caret)
+nzv <- nearZeroVar(flight, saveMetrics = TRUE)
+flight <- flight[, !nzv$nzv]
+```
+Pärast eemaldamist teeme uuesti ülevaate andmestikust:
+```{r}
+library(skimr)
+skim(flight)
+```
+Nüüd on andmestikus alles 19 numbrilist muutujat.
+
+### Eemaldame tunnused tugeva korrelatsiooniga
+
+```{r}
+num_tunnused <- Filter(is.numeric, flight)
+cor_matrix <- cor(num_tunnused, use = "complete.obs")
+library(caret)
+high_cor <- findCorrelation(cor_matrix, cutoff = 0.9)
+flight <- flight[, -high_cor]
+ncol(flight)
+```
+Teeme uuesti ülevaate allesjäänud väärtustest:
+```{r}
+library(skimr)
+skim(flight)
+```
+
+
 ## Faltortunnuste moodustamine
 Asendame edasiseks analüüsiks sümboltüüpi tunnused faktoritega:
 ```{r}
@@ -125,16 +157,16 @@ Teeme uuendatud andmestiku ülevaade
 skim(flight)
 ```
 
-Andmestikus on 4 faktor tunnust ja 20 arvulist tunnust
+Andmestikus on 2 faktor tunnust ja 15 arvulist tunnust
 
 
 ## Suure erinevate kategooriate arvuga tunnuste eemaldamine
-Andmestikus on olemas kategoriaalsed tunnused suure erinevate kategooriate arvuga: TAIL_NUMBER(644 kategooriat), ORIGIN_AIRPORT(154 kategooriat), DESTINATION_AIRPORT(158 kategooriat).
+Andmestikus on olemas kategoriaalsed tunnused suure erinevate kategooriate arvuga: DESTINATION_AIRPORT(158 kategooriat).
 
 Jätame suure erinevate kategooriate arvuga tunnuseid analüüsist välja. Me kasutame katagoriaalseid tunnuseid arvuliste tunnuste rühmitamiseks, kuid juhuk kui kategooriate arv on liiga suur saame tulemusena liiga väikesed rühmad, mille järgi ei ole võimalik üldistusi teha.
 
 ```{r}
-flight<- subset(flight, select = -c(TAIL_NUMBER, ORIGIN_AIRPORT, DESTINATION_AIRPORT))
+flight<- subset(flight, select = -c(DESTINATION_AIRPORT))
 ```
 
 Ülejäänud faktor-tunnuste puhul vaatame erinevate kategooriate arvu esenemist
@@ -199,7 +231,7 @@ Esitame kategoriaalsete tunnuste väärtuste sageduste histogrammid jättes suur
 
 Esmalt kontrollime, et faktortunnust on R poolt ära tuntud ja loetud.
 ```{r}
-Ktunnused <- flight[, sapply(flight, is.factor), drop = FALSE]
+Ktunnused <- flight[, sapply(flight, is.factor), drop=FALSE]
 
 if (ncol(Ktunnused) == 0) {
   stop("Andmestikus pole faktor-tunnuseid.")
@@ -208,11 +240,294 @@ if (ncol(Ktunnused) == 0) {
 
 Nüüd joonistame histogrammi
 ```{r}
-par(mfrow = c(1, 2))
-par(mar = c(10, 4, 4, 2))
+
+par(mar = c(5, 4, 4, 2))
 for (i in 1:ncol(Ktunnused)) {
   barplot(table(Ktunnused[, i]), col = "skyblue", ylab = "Sagedus",
           main = paste("Tunnuse", names(Ktunnused)[i], "\n sageduste histogramm"),
           cex.main = 0.9, cex.axis = 0.7, cex.lab = 0.8, las = 2, cex.names = 0.5)
 }
 ```
+Näeme, et palju on andmeid WIN Airline kohta.
+
+## Seoste analüüs
+### Seosed arvuliste tunnuste vahel
+Visualiseerime arvuliste tunnuste vahelised sõltuvused ka plot funktsiooni abil:
+
+
+```{r}
+png("plot.png", width = 1200, height = 800)
+par(mar = c(10, 4, 4, 2))
+plot(tunnused, pch = 19, col = "blue", cex = 0.75)
+knitr::include_graphics("plot.png")
+```
+
+hajuvusmaatriksi põhjal näeme võimalike suhteid väärtuste vahel.
+Hajuvusmaatriksi põhjal valime sihttunnuseks ARRIVAL_DELAY. See on arvuline ja pidev väärtus.
+
+Näeme hajuvusgraafiku põhjal, et ARRIVAL_DELAY-l võib olla seos väärtustega: DEPARTURE_TIME, AIRLINE_DELAY ja ELAPSED_TIME.
+Arvuliseks tunnuseks edasi analüüsimiseks valisime DEPARTURE_TIME.
+
+Kuna alles on pärast andme puhastust jäänud mittearvuline tunnus  AIRLINE (kategooriline) siis teeme ka analüüsi sellest.
+
+### Kategoriaalsete tunnuste mõju sihttunnustele
+Sihttunnuse Y="DEP_DELAY" kategoriaalsete tunnustega seose analüüsimiseks esitame sihttunnuse karpdiagrammid kateoriaalse tunnuse rühmadeks.
+Enne sihttunnuse töötlemist kontrollime veergude arvu:
+```{r}
+if (ncol(Ktunnused) == 0) {
+  stop("Andmestikus pole faktor-tunnuseid.")
+}
+```
+
+Andmestikus on faktortunnuseid.
+
+```{r}
+par(mfrow = c(1, 1))
+par(mar=c(4,4,4,2))
+for (i in 1:ncol(Ktunnused)) {
+  b <- boxplot(flight$ARRIVAL_DELAY ~ Ktunnused[, i], col = "skyblue", 
+               cex.axis = 0.55, cex.lab = 0.7, las = 2, 
+               main = paste("ARRIVAL_DELAY vs", names(Ktunnused)[i], "\n karpdiagramm"), 
+               ylab = "ARRIVAL_DELAY", xlab = "", cex.main = 0.8)
+
+  kesk <- tapply(flight$ARRIVAL_DELAY, Ktunnused[, i], mean)
+  points(1:length(unique(Ktunnused[, i])), kesk, col = "red", pch = 18, cex = 0.5)
+}
+```
+
+Erinevus rühmade keskmiste vahel näitab, et faktor-tunnuse mõju on oluline.
+
+Karpdiagrammi pähjal näeme, et lennufirmadel nagu AS ja VX (võib ka lugeda nende hulka mingil määral US) on madalama saabumise hilinemisega mediaan, see tähendab, et pooletel nende lennufirmade lendudel on saabumise hilinemine väiksem kui mediaani väärtusel.
+
+Lennufirmadel nagu HA ja MQ on kõrgem saabumise hilinemine kui mediaan, mis võib viidata sellele, et nende lendudel esineb keskmisest rohkem hilinemisi.
+
+Lennufirmadel nagu EV, OO ja WN on laiemad karbid, mis näitab, et nende saabumise hilinemised on hajutatumad ehk nende lendude seas esineb väikseid hilinemisi kui ka suuri hilinemisi.
+
+Lennufirmadel nagu AA, EV, F9 ja MQ on rohkem erandeid.
+
+HA lennufirma puhul on näha võrreldes teiste lennufirmadega kõrgemat karpi, mis võib viitada tihedamatele hilinemistele võrreldes teiste lennufirmadega.
+
+Esitame faktor tunnuse AIRLINE arvkarakteristiku faktortunnuse rühmades.
+
+```{r}
+library(kableExtra)
+tabel <- kable(Summarize(ARRIVAL_DELAY~AIRLINE, data=flight, digits=2))
+kable_styling(tabel, bootstrap_options = c("striped", "hover"))
+```
+
+faktortunnuse arvkarakteristiku tabeli põhjal näeme, et lennufirmadel NK ja MQ on kõrgemad keskmised saabumis hilinemised võrreldes madalama keskmisega F9 ja US lennufirmade puhul. See tähendab, et lennufirma mängib olulist rolli saabumis-hilinemisel.
+
+tabeli põhjal ka näeme, et NK ja MQ lennufirmadel on suurem standardhälve, mis tähendab hilinemised on ettearvamatud.
+Lennufirmadel AS ja VX on aga madalama standardhälvega, mis tähendab, et antud lennufirmade puhul pole hilinemised nii ettearvamatud.
+
+MQ lennufirma puhul on maksimaalne hilinemine väga suur, mis tähendab, et selle lennufirma puhul võivad mõned lennud väga pikka vahega hilineda.
+
+## Valitud tunnuste analüüs
+Valisime edasiseks analüüsiks sihttunnuse ARRIVAL_DELAY. Arvulise tunnuse analüüsimiseks valisime DEPARTURE_TIME ning mittearvulise tunnuseks valisime AIRLINE.
+
+Kirjeldava andmeanalüüsi etapil esitatakse tunnuste väärtuste jaotuse diagrammid, sagedustabelid, аrvulised karakteristikud ning tehakse ka erindite analüüs.
+
+### Mittearvuliste tunnuste analüüs
+Mittearvuline tunnus on AIRLINE on kategooriline tunnus.
+
+Visualiseerime tunnuse kasutades tulpdiagrammi.
+```{r}
+par(mar=c(5,4,4,2))
+barplot(prop.table(table(flight$AIRLINE))*100, col = "skyblue", cex.names = 0.7, cex.axis = 0.8, main = "Tunnuse AIRLINE suhteliste sageduste tulpdiagramm", ylab = "suht. sagedus, %",ylim=c(0,60))
+```
+
+Esitame ja tunnuse sagedustabeli. Selleks kasutame funktsiooni kable() paketist knitr ja funktsiooni kable_styling() paketist kableExtra.
+
+```{r}
+sagedus <- table(flight$AIRLINE)
+suht.sagedus <-round(prop.table(table(flight$AIRLINE))*100,2)
+sagedustabel <- cbind(rownames(sagedus),sagedus,suht.sagedus)
+sagedustabel <- data.frame(sagedustabel,row.names = NULL)
+sagedustabel <-rbind(sagedustabel,c("Total",sum(sagedus),sum(suht.sagedus)))
+names(sagedustabel) <- c("Airline","sagedus","suht.sagedus,%")
+
+library(knitr)
+library(kableExtra)
+
+kable_styling(kable(sagedustabel,align = c('l','r','r')),bootstrap_options = c("striped","hover"),full_width = 0,position = "left")
+```
+
+Diagrammi põhjal näeme, et WN moodustab omb kaudu 1/4 andmestikkus olevatest lendudest. AA, DL, EV ja UA on sarnase osakaaluga, igaüks on umbes 10% vahel.
+
+Lennufirma OO jääb umbes 5% vahemikku ning ülejäänud lennufirmad 2% vahemikku. Eriti väike esindus on lennufirmal HA.
+
+
+## Arvulise tunnuse alanüüs
+Kuna valitud sihttunnus Y=ARRIVAL_DELAY on pidev tunnus, kasutame hist() funktsiooni andmete visualiseerimiseks.
+
+Funktsioon hist() koondab andmed vahemikesse, neid vahemikke edasi kasutatakse sagedustabeli moodustamiseks;
+
+```{r}
+h <- hist(flight$ARRIVAL_DELAY, col = "skyblue",main = "Tunnuse ARRIVAL_DELAY sageduste histogramm", xlab="saabumise hilinemine (minutites)", ylab = "sagedus", ylim = c(0,500))
+```
+
+Tunnuse ARRIVAL_DELAY suhtelise sageduse histogramm ja karpdiagramm.
+
+```{r}
+par(mfrow=c(1,1))
+h$counts <- h$counts/sum(h$counts)*100
+plot(h,col = "skyblue",main = "Tunnuse ARRIVAL_DELAY \n suhteliste sageduste histogramm", xlab="saabumise hilinemine (minutites)", ylab = "suht.sagedus,%",cex.main=0.8,ylim = c(0,40),xlim = c(0,7000))
+
+b <- boxplot(flight$ARRIVAL_DELAY, col = "skyblue", horizontal = 1, main="Tunnuse ARRIVAL_DELAY karpdiagramm",xlab="lendude saabumise hilinemine eurodes",cex.main=0.8, range = 3)
+```
+
+Tunnuse ARRIVAL_DELAY jaotus on parempoolse asümmeetriaga ning on olemas ka palju erandeid paremal.
+
+Erindite analüüs: Paljud lennud saabuvad pigem õigeaegselt või väiksema hilinemisega, seda võib järeldada võtes arvesse, et lendude hilinemised on pigem koondunud 0 väärtuse lähedusse.
+
+histogrammi paremas osas on ka näha potendsiaalseid erandeid, mis näitavad mitme tuhandete minutite hilinemisi. Need hilinemised erinevad ülejäänud suurem osa andmetest.
+
+```{r}
+sort(b$out)
+```
+Objektid, mis esinevad eranditena:
+
+```{r}
+which(flight$ARRIVAL_DELAY%in%b$out)
+```
+
+Info erandite kohta:
+
+```{r}
+datatable(flight[which(flight$ARRIVAL_DELAY%in%b$out) , ],options=list(scrollX=1,pageLenght=5,searching = FALSE,scroller = TRUE,scrollY=200))
+```
+
+
+Tabeli põhjal saame teada, et pooled suured hilinemised toimusid juuni kuu vältel. Tabelis olevad viimased kolm lendu on ka oma suure hilinemise tõttu erilised.
+
+
+Tunnuse sagedustabel (eelnevalt väärtused on vaja intervallidesse jaotada vastavalt tunnuse histogrammile, kasutame selleks funktsiooni cut()):
+
+```{r}
+intervallid <-cut(flight$ARRIVAL_DELAY,h$breaks,include.lowest = TRUE,dig.lab = 4)
+sagedus <- table(intervallid)
+suht.sagedus <-prop.table(table(intervallid))*100
+sagedustabel <- cbind(rownames(sagedus),sagedus,round(suht.sagedus,2),round(cumsum(suht.sagedus),2))
+sagedustabel <- data.frame(sagedustabel,row.names = NULL)
+sagedustabel <-rbind(sagedustabel,c("Total",sum(sagedus),sum(suht.sagedus),""))
+names(sagedustabel) <- c("Price_euros","sagedus","suht.sagedus,%","kum.suht.sagedus,%")
+
+library(knitr)
+library(kableExtra)
+
+kable_styling(kable(sagedustabel,align = c('l','r','r','r')),bootstrap_options = c("striped","hover"),full_width = 0,position = "left")
+```
+
+Tunnuse arvkarakteristikud:
+
+```{r}
+library(FSA)
+arvkar <- Summarize(flight$ARRIVAL_DELAY, digits = 2)
+kable_styling(kable(t(arvkar)))
+```
+
+Järeldus: Keskmine hilinemine on 57.25 minutit ehk keskmiselt hilinevad lennud saabumisel peagu tund. Mediaan on madalam võrreldes keskmisega, mis viitab positiivsele viltusele andmete jaotusel. See tähendab ka, et enamik lende hilineb vähem ning mõned suurte hilinemistega lennud tõstavad keskmist.
+Standard hälve on 56.82 minutit, mis näitab suurt varieeruvust saabumise hilinemisel. Minimaalne hilinemine on 15 minutit ja maksimaalne hilinemine on 673 minutit ehk umbes 11 tundi.
+
+
+
+# Sihttunnuse jaotuse vastavus normaaljaotusele
+Sihttunnuse jaotuse uurimiseks visuaalselt esitame andmed histogrammi ja thedusgraafikuna.
+
+```{r}
+hist(flight$ARRIVAL_DELAY, probability = TRUE, col = "skyblue", 
+     main = "Tunnuse ARRIVAL_DELAY jaotus", xlab = "ARRIVAL_DELAY")
+lines(density(flight$ARRIVAL_DELAY), col = "red", lwd = 2)
+```
+
+normaaljaotuse graafik näitab, et graafik on paremale poole viltu seega ARRIVAL_DELAY ei ole normaalselt jaotunud.
+
+# Usaldusintervallide leidmine
+## Leidke 95% usaldusintervall sihttunnuse keskväärtusele
+Selleks, et leida 95% usaldusintervall sihttunnuse keskväärtusele kasutame funktsiooni t.test.
+
+```{r}
+t.test(flight$ARRIVAL_DELAY, conf.level = 0.95)$conf.int
+```
+Antud tulemus annab meile teada, et me võime 95% kkindlusega väita, et meie ARRIVAL_DELAY jääb vahemikku 53.07 minutit ja 61.42 minutit.
+
+
+## Leidke 95% usaldusintervallid sihttunnuse keskväärtusele kategoriaalse tunnuse rühmades
+Kõige rohkem mõjuv kategooriline tunnus on AIRLINE. Leiame selle usaldusintervalli iga rühma jaoks
+
+```{r}
+library(dplyr)
+usaldusintervallid <- flight %>%
+  group_by(AIRLINE) %>%
+  summarise(
+    keskvaartus = mean(ARRIVAL_DELAY),
+    usaldusint = list(t.test(ARRIVAL_DELAY, conf.level = 0.95)$conf.int)
+  )
+usaldusintervallid
+```
+
+## Visualiseerige usaldusintervallid Cleveland plot diagrammil
+Kõigepeal valmistame ette andmed, et keskväärtused ja usaldusintervallid oleksid paremini kättesaadavad.
+
+```{r}
+usaldusintervallid <- flight %>%
+  group_by(AIRLINE) %>%
+  summarise(
+    keskvaartus = mean(ARRIVAL_DELAY),
+    alumine = t.test(ARRIVAL_DELAY, conf.level = 0.95)$conf.int[1],
+    ulemine = t.test(ARRIVAL_DELAY, conf.level = 0.95)$conf.int[2]
+  )
+```
+
+Pärast andmete ettevalmistamist saame joonistada Cleveland plot joonise.
+
+```{r}
+library(ggplot2)
+ggplot(usaldusintervallid, aes(x = keskvaartus, y = AIRLINE)) +
+  geom_point() +
+  geom_errorbarh(aes(xmin = alumine, xmax = ulemine), height = 0.2) +
+  labs(title = "Keskväärtuse usaldusintervallid AIRLINE rühmades", 
+       x = "Keskväärtus", y = "AIRLINE")
+```
+
+
+## Valige kategoriaalse tunnuse kaks rühma, milles erinevus on kõige suurem
+Kõigepealt valime kaks  rühma, mis on suurima erinevuseda. Valime keskväärtuse järgi.
+
+```{r}
+usaldusintervallid <- usaldusintervallid %>%
+  arrange(desc(keskvaartus))
+top2 <- usaldusintervallid[1:2, ]
+top2
+```
+
+Nüüd saame nende rühmade jaoks joonistada neile karpdiagrammid.
+
+```{r}
+top2_data <- flight %>% filter(AIRLINE %in% top2$AIRLINE)
+boxplot(ARRIVAL_DELAY ~ AIRLINE, data = top2_data, col = "skyblue",
+        main = "Karpdiagramm kahe rühma jaoks", ylab = "ARRIVAL_DELAY")
+```
+
+Nüüd arvutame rühmade põhikarakteristikud kaustades summarise funktsiooni.
+
+```{r}
+top2_data %>%
+  group_by(AIRLINE) %>%
+  summarise(
+    keskvaartus = mean(ARRIVAL_DELAY),
+    mediaan = median(ARRIVAL_DELAY),
+    standardhalve = sd(ARRIVAL_DELAY),
+    minimaalne = min(ARRIVAL_DELAY),
+    maksimaalne = max(ARRIVAL_DELAY)
+  )
+```
+
+Sõnastame hüpoteesi hüpotees: Rühmade keskväärtused on võrdsed.
+Nüüd koostame t-testi.
+
+```{r}
+t.test(ARRIVAL_DELAY ~ AIRLINE, data = top2_data)
+```
+Kuna testi käigus saadud p-väärtus on 0.8905, siis puuduvad piisavad tõendid, et väita, et rühmade keskväärtused on erinevad, mis tõttu seatud nullhüpotees jääb kehtima.
+
