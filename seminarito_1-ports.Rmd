@@ -197,16 +197,17 @@ SCHEDULED_DEPARTURE on peagu sümmeetriline, SCHEDULED_DEPARTURE karpdiagrammon 
 ### Kategoriaalsete tunnuste jaotused
 Esitame kategoriaalsete tunnuste väärtuste sageduste histogrammid jättes suure erinevate kategooriate arvuga tunnuseid välja.
 
+Esmalt kontrollime, et faktortunnust on R poolt ära tuntud ja loetud.
 ```{r}
-Ktunnused <- flight[, sapply(flight, is.factor)]
+Ktunnused <- flight[, sapply(flight, is.factor), drop = FALSE]
 
-# Kui Ktunnused on vektor, teisenda see andmetabeliks
-if (is.vector(Ktunnused)) {
-  Ktunnused <- as.data.frame(Ktunnused)
-  colnames(Ktunnused) <- names(flight)[sapply(flight, is.factor)]
+if (ncol(Ktunnused) == 0) {
+  stop("Andmestikus pole faktor-tunnuseid.")
 }
+```
 
-# Joonista histogrammid
+Nüüd joonistame histogrammi
+```{r}
 par(mfrow = c(1, 2))
 par(mar = c(10, 4, 4, 2))
 for (i in 1:ncol(Ktunnused)) {
@@ -215,4 +216,3 @@ for (i in 1:ncol(Ktunnused)) {
           cex.main = 0.9, cex.axis = 0.7, cex.lab = 0.8, las = 2, cex.names = 0.5)
 }
 ```
-
