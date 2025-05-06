@@ -1,7 +1,7 @@
 ---
 title: "Andmestiku flights.csv puhastamine ja analüüs"
-author: ""
-date: "2025-02-25"
+author: "Veronica Vinkler ja Dominic Arkhan Baum"
+date: "2025-05-26"
 output:
   html_document:
     toc: true
@@ -13,11 +13,25 @@ output:
     code_folding: show
 ---
 
-Käesolevas õppematerjalis on esitatud andmestiku puhastamise, ettevalmistamise ja kirjeldava analüüsu läbiviimise skeem andmestiku flights.csv näitel. Antud materjalis lahendatud ülesanded vastavad Seminaritöö 1 ja 2 ülesannetele.
-
-The U.S. Department of Transportation's (DOT) Bureau of Transportation Statistics tracks the on-time performance of domestic flights operated by large air carriers. Summary information on the number of on-time, delayed, canceled, and diverted flights is published in DOT's monthly Air Travel Consumer Report and in this dataset of 2015 flight delays and cancellations.
+Käesolevas õppematerjalis on esitatud andmestiku puhastamise, ettevalmistamise ja kirjeldava analüüsi läbiviimise skeem andmestiku flights.csv näitel, mis sisaldab Ameerika Ühendriikide transpordiministeeriumi (DOT) transpordistatistika büroo poolt jälgitud suurte lennuettevõtjate 2015 aasta siselendude hilinemiste ja tühistamiste andmeid.
+Antud töös olevad lahendatud ülesanded vastavad Seminaritöö 1 ja 2 ülesannetele.
 
 Flights.csv andmestik on kättesaadav lehelt: https://www.kaggle.com/datasets/usdot/flight-delays?resource=download 
+
+UA- United Air Lines Inc.
+AA- American Airlines Inc.
+US- US Airways Inc.
+F9- Frontier Airlines Inc.
+B6- JetBlue Airways
+00- Skywest Airlines Inc.
+AS- Alaska Airlines Inc.
+NK- Spirit Air Lines
+WN- Southwest Airlines Co.
+DL- Delta Air Lines Inc.
+EV- Atlantic Southeast Airlines
+HA- Hawaiian Airlines Inc.
+MQ- American Eagle Airlines Inc.
+VX- Virgin America
 
 
 # Andmete eeltöötlus
